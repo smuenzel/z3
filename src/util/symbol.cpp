@@ -52,6 +52,14 @@ public:
         DEALLOC_MUTEX(lock);
     }
 
+    void insert_static(char const * d) {
+      lock_guard _lock(*lock);
+      str_hashtable::entry * e;
+      if (m_table.insert_if_not_there_core(d, e)) {
+        e->set_data(d);
+      }
+    }
+
     char const * get_str(char const * d) {
         const char * result;
         lock_guard _lock(*lock);
@@ -112,16 +120,29 @@ struct internal_symbol_tables {
         auto* table = tables[string_hash(d, static_cast<unsigned>(strlen(d)), 251) % sz];
         return table->get_str(d);
     }
+
+    void insert_static(char const * d) {
+        auto* table = tables[string_hash(d, static_cast<unsigned>(strlen(d)), 251) % sz];
+        return table->insert_static(d);
+    }
 };
 
 
 static internal_symbol_tables* g_symbol_tables = nullptr;
 
+static vector<const symbol*> static_symbols{};
+
+void symbol::initialize_add_to_table() const{
+  static_symbols.push_back(this);
+}
+
 void initialize_symbols() {
     if (!g_symbol_tables) {
         unsigned num_tables = 2 * std::min((unsigned) std::thread::hardware_concurrency(), 64u);
         g_symbol_tables = alloc(internal_symbol_tables, num_tables);
-        
+        for (const symbol * s : static_symbols){
+          g_symbol_tables->insert_static(s->bare_str());
+        }
     }
 }
 
@@ -135,18 +156,18 @@ symbol::symbol(char const * d) {
     if (d == nullptr)
         m_data = nullptr;
     else
-        m_data = g_symbol_tables->get_str(d);
+        m_data = reinterpret_cast<size_t const *>(g_symbol_tables->get_str(d));
 }
 
 symbol & symbol::operator=(char const * d) {
-    m_data = d ? g_symbol_tables->get_str(d) : nullptr;
+    m_data = reinterpret_cast<size_t const*>( d ? g_symbol_tables->get_str(d) : nullptr);
     return *this;
 }
 
 std::string symbol::str() const {
     SASSERT(!is_marked());
     if (GET_TAG(m_data) == 0) {
-        return m_data ? m_data : "<null>";
+        return m_data ? reinterpret_cast<char const *>(m_data) : "<null>";
     }
     else {
         string_buffer<128> buffer;
@@ -158,7 +179,7 @@ std::string symbol::str() const {
 bool symbol::contains(char ch) const {
     SASSERT(!is_marked());
     if (GET_TAG(m_data) == 0) {
-        return strchr(m_data, ch) != nullptr;
+        return strchr(reinterpret_cast<char const *>(m_data), ch) != nullptr;
     }
     else {
         return false;
@@ -168,7 +189,7 @@ bool symbol::contains(char ch) const {
 unsigned symbol::display_size() const {
     SASSERT(!is_marked());
     if (GET_TAG(m_data) == 0) {
-        return static_cast<unsigned>(strlen(m_data));
+        return static_cast<unsigned>(strlen(reinterpret_cast<char const *>(m_data)));
     }
     else {
         unsigned v = UNBOXINT(m_data);
@@ -203,4 +224,3 @@ bool lt(symbol const & s1, symbol const & s2) {
     SASSERT(cmp != 0);
     return cmp < 0;
 }
-

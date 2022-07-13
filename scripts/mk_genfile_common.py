@@ -902,7 +902,7 @@ def mk_hpp_from_pyg(pyg_file, output_dir):
         out.write(' {}\n')
         out.write('  static void collect_param_descrs(param_descrs & d) {\n')
         for param in params:
-            out.write('    d.insert("%s", %s, "%s", "%s","%s");\n' % (param[0], TYPE2CPK[param[1]], param[3], pyg_default(param), module_name))
+            out.write('    d.insert("%s"_symbol, %s, "%s", "%s","%s");\n' % (param[0], TYPE2CPK[param[1]], param[3], pyg_default(param), module_name))
         out.write('  }\n')
         if export:
             out.write('  /*\n')
@@ -913,10 +913,10 @@ def mk_hpp_from_pyg(pyg_file, output_dir):
         # Generated accessors
         for param in params:
             if export:
-                out.write('  %s %s() const { return p.%s("%s", g, %s); }\n' %
+                out.write('  %s %s() const { return p.%s("%s"_symbol, g, %s); }\n' %
                           (TYPE2CTYPE[param[1]], to_c_method(param[0]), TYPE2GETTER[param[1]], param[0], pyg_default_as_c_literal(param)))
             else:
-                out.write('  %s %s() const { return p.%s("%s", %s); }\n' %
+                out.write('  %s %s() const { return p.%s("%s"_symbol, %s); }\n' %
                           (TYPE2CTYPE[param[1]], to_c_method(param[0]), TYPE2GETTER[param[1]], param[0], pyg_default_as_c_literal(param)))
         out.write('};\n')
         out.write('#endif\n')
