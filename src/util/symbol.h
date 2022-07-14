@@ -167,7 +167,6 @@ void finalize_symbols();
 bool lt(symbol const & s1, symbol const & s2);
 
 template<char ...S> struct static_symbol {
-    static_assert(sizeof(size_t) == 8);
     struct hash_c { size_t hash; char c[sizeof...(S) + 1]; };
     static constexpr char raw_string[] = { S..., 0};
     static constexpr size_t hash =  (size_t)string_hash(raw_string ,sizeof...(S),17);
