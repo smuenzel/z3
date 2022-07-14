@@ -92,6 +92,9 @@ static std::optional<internal_symbol_table> g_symbol_tables;
 void initialize_symbols() {
     if (!g_symbol_tables) {
         g_symbol_tables.emplace();
+        for (const symbol * s : static_symbols){
+          g_symbol_tables->insert_static(s->bare_str());
+        }
     }
 }
 
