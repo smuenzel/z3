@@ -273,7 +273,7 @@ constexpr unsigned string_hash(const char * str, unsigned length, unsigned init_
     c = init_value;      /* the previous hash value */
 
     /*---------------------------------------- handle most of the key */
-    SASSERT(sizeof(unsigned) == 4);
+    static_assert(sizeof(unsigned) == 4);
     while (len >= 12) {
         a += read_unsigned(str);
         b += read_unsigned(str+4);
