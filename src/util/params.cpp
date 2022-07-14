@@ -398,11 +398,11 @@ public:
     symbol get_sym(symbol const & k, symbol const & _default) const;
     symbol get_sym(char const * k, symbol const & _default) const;
 
-    bool get_bool(char const * k, params_ref const & fallback, bool _default) const;
-    unsigned get_uint(char const * k, params_ref const & fallback, unsigned _default) const;
-    double get_double(char const * k, params_ref const & fallback, double _default) const;
-    char const * get_str(char const * k, params_ref const & fallback, char const * _default) const;
-    symbol get_sym(char const * k, params_ref const & fallback, symbol const & _default) const;
+    bool get_bool(symbol const & k, params_ref const & fallback, bool _default) const;
+    unsigned get_uint(symbol const & k, params_ref const & fallback, unsigned _default) const;
+    double get_double(symbol const & k, params_ref const & fallback, double _default) const;
+    char const * get_str(symbol const & k, params_ref const & fallback, char const * _default) const;
+    symbol get_sym(symbol const & k, params_ref const & fallback, symbol const & _default) const;
 
     // setters
     void set_bool(symbol const & k, bool v);
@@ -645,23 +645,23 @@ symbol params_ref::get_sym(char const * k, symbol const & _default) const {
     return m_params ? m_params->get_sym(k, _default) : _default; 
 }
 
-bool params_ref::get_bool(char const * k, params_ref const & fallback, bool _default) const {
+bool params_ref::get_bool(symbol const & k, params_ref const & fallback, bool _default) const {
     return m_params ? m_params->get_bool(k, fallback, _default) : fallback.get_bool(k, _default);
 }
 
-unsigned params_ref::get_uint(char const * k, params_ref const & fallback, unsigned _default) const {
+unsigned params_ref::get_uint(symbol const & k, params_ref const & fallback, unsigned _default) const {
     return m_params ? m_params->get_uint(k, fallback, _default) : fallback.get_uint(k, _default);
 }
 
-double params_ref::get_double(char const * k, params_ref const & fallback, double _default) const {
+double params_ref::get_double(symbol const & k, params_ref const & fallback, double _default) const {
     return m_params ? m_params->get_double(k, fallback, _default) : fallback.get_double(k, _default);
 }
 
-char const * params_ref::get_str(char const * k, params_ref const & fallback, char const * _default) const {
+char const * params_ref::get_str(symbol const & k, params_ref const & fallback, char const * _default) const {
     return m_params ? m_params->get_str(k, fallback, _default) : fallback.get_str(k, _default);
 }
 
-symbol params_ref::get_sym(char const * k, params_ref const & fallback, symbol const & _default) const {
+symbol params_ref::get_sym(symbol const & k, params_ref const & fallback, symbol const & _default) const {
     return m_params ? m_params->get_sym(k, fallback, _default) : fallback.get_sym(k, _default);
 }
 
@@ -920,27 +920,27 @@ symbol params::get_sym(char const * k, symbol const & _default) const {
 
 #define GET_SIMPLE_VALUE2(FIELD_NAME, KIND) GET_VALUE2(return it->second.FIELD_NAME;, KIND)
 
-bool params::get_bool(char const * k, params_ref const & fallback, bool _default) const {
+bool params::get_bool(symbol const & k, params_ref const & fallback, bool _default) const {
     GET_SIMPLE_VALUE2(m_bool_value, CPK_BOOL);
     return fallback.get_bool(k, _default);
 }
 
-unsigned params::get_uint(char const * k, params_ref const & fallback, unsigned _default) const {
+unsigned params::get_uint(symbol const & k, params_ref const & fallback, unsigned _default) const {
     GET_SIMPLE_VALUE2(m_uint_value, CPK_UINT);
     return fallback.get_uint(k, _default);
 }
 
-double params::get_double(char const * k, params_ref const & fallback, double _default) const {
+double params::get_double(symbol const & k, params_ref const & fallback, double _default) const {
     GET_SIMPLE_VALUE2(m_double_value, CPK_DOUBLE);
     return fallback.get_double(k, _default);
 }
 
-char const * params::get_str(char const * k, params_ref const & fallback, char const * _default) const {
+char const * params::get_str(symbol const & k, params_ref const & fallback, char const * _default) const {
     GET_SIMPLE_VALUE2(m_str_value, CPK_STRING);
     return fallback.get_str(k, _default);
 }
 
-symbol params::get_sym(char const * k, params_ref const & fallback, symbol const & _default) const {
+symbol params::get_sym(symbol const & k, params_ref const & fallback, symbol const & _default) const {
     GET_VALUE2(return it->second.m_sym_value;, CPK_SYMBOL);
     return fallback.get_sym(k, _default);
 }

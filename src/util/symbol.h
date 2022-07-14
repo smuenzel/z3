@@ -30,7 +30,10 @@ template<typename T>
 class symbol_table;
 
 class symbol {
-    size_t const * m_data;
+    union { 
+      char const * m_data;
+      size_t const * m_data_as_size_t;
+    };
 
     template<typename T>
     friend class symbol_table;
@@ -38,10 +41,10 @@ class symbol {
     void initialize_add_to_table() const;
 
     explicit symbol(void const * data):
-        m_data(reinterpret_cast<size_t const *>(data)) {
+        m_data(reinterpret_cast<char const *>(data)) {
     }
 
-    constexpr explicit symbol(size_t const* raw_data) : m_data(raw_data + 1) {
+    constexpr explicit symbol(size_t const* raw_data) : m_data_as_size_t(raw_data + 1) {
 
     }
 
@@ -64,7 +67,7 @@ public:
     explicit symbol(char const * d);
     explicit symbol(const std::string & str) : symbol(str.c_str()) {}
     explicit symbol(unsigned idx):
-        m_data(BOXTAGINT(size_t const *, idx, 1)) {
+        m_data(BOXTAGINT(char const *, idx, 1)) {
 #if !defined(__LP64__) && !defined(_WIN64)
         SASSERT(idx < (SIZE_MAX >> PTR_ALIGNMENT));
 #endif
@@ -91,23 +94,23 @@ public:
     friend bool operator!=(symbol const & s1, char const * s2) { return !operator==(s1, s2); }
     
     // C-API only functions
-    void * c_api_symbol2ext() const { return reinterpret_cast<char*>(const_cast<size_t*>(m_data)); }
+    void * c_api_symbol2ext() const { return const_cast<char*>(m_data); }
     static symbol c_api_ext2symbol(void const * ptr) { 
         return symbol(ptr);
     }
     unsigned hash() const { 
         if (m_data == nullptr) return 0x9e3779d9;
         else if (is_numerical()) return get_num(); 
-        else return static_cast<unsigned>(reinterpret_cast<size_t const *>(m_data)[-1]);
+        else return static_cast<unsigned>(m_data_as_size_t[-1]);
     }
     bool contains(char c) const;
     unsigned display_size() const;
-    char const * bare_str() const { SASSERT(!is_numerical()); return reinterpret_cast<char const *>(m_data); }
+    char const * bare_str() const { SASSERT(!is_numerical()); return m_data; }
     friend std::ostream & operator<<(std::ostream & target, symbol s) {
         SASSERT(!s.is_marked());
         if (GET_TAG(s.m_data) == 0) {
             if (s.m_data) {
-                target << reinterpret_cast<char const*>(s.m_data);
+                target << s.m_data;
             }
             else {
                 target << "null";
@@ -123,7 +126,7 @@ public:
         SASSERT(!s.is_marked());
         if (GET_TAG(s.m_data) == 0) {
             if (s.m_data) {
-                target << reinterpret_cast<char const*>(s.m_data);
+                target << s.m_data;
             }
             else {
                 target << "null";

@@ -62,11 +62,11 @@ public:
     symbol get_sym(symbol const & k, symbol const & _default) const;
     symbol get_sym(char const * k, symbol const & _default) const;
 
-    bool get_bool(char const * k, params_ref const & fallback, bool _default) const;
-    unsigned get_uint(char const * k, params_ref const & fallback, unsigned _default) const;
-    double get_double(char const * k, params_ref const & fallback, double _default) const;
-    char const * get_str(char const * k, params_ref const & fallback, char const * _default) const;
-    symbol get_sym(char const * k, params_ref const & fallback, symbol const & _default) const;
+    bool get_bool(symbol const & k, params_ref const & fallback, bool _default) const;
+    unsigned get_uint(symbol const & k, params_ref const & fallback, unsigned _default) const;
+    double get_double(symbol const & k, params_ref const & fallback, double _default) const;
+    char const * get_str(symbol const & k, params_ref const & fallback, char const * _default) const;
+    symbol get_sym(symbol const & k, params_ref const & fallback, symbol const & _default) const;
 
     bool empty() const;
     bool contains(symbol const & k) const;

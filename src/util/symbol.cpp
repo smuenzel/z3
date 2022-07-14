@@ -57,7 +57,8 @@ public:
       str_hashtable::entry * e;
       if (m_table.insert_if_not_there_core(d, e)) {
         e->set_data(d);
-      }
+      };
+      SASSERT(m_table.contains(d));
     }
 
     char const * get_str(char const * d) {
@@ -156,18 +157,18 @@ symbol::symbol(char const * d) {
     if (d == nullptr)
         m_data = nullptr;
     else
-        m_data = reinterpret_cast<size_t const *>(g_symbol_tables->get_str(d));
+        m_data = g_symbol_tables->get_str(d);
 }
 
 symbol & symbol::operator=(char const * d) {
-    m_data = reinterpret_cast<size_t const*>( d ? g_symbol_tables->get_str(d) : nullptr);
+    m_data = d ? g_symbol_tables->get_str(d) : nullptr;
     return *this;
 }
 
 std::string symbol::str() const {
     SASSERT(!is_marked());
     if (GET_TAG(m_data) == 0) {
-        return m_data ? reinterpret_cast<char const *>(m_data) : "<null>";
+        return m_data ? m_data : "<null>";
     }
     else {
         string_buffer<128> buffer;
@@ -179,7 +180,7 @@ std::string symbol::str() const {
 bool symbol::contains(char ch) const {
     SASSERT(!is_marked());
     if (GET_TAG(m_data) == 0) {
-        return strchr(reinterpret_cast<char const *>(m_data), ch) != nullptr;
+        return strchr(m_data, ch) != nullptr;
     }
     else {
         return false;
@@ -189,7 +190,7 @@ bool symbol::contains(char ch) const {
 unsigned symbol::display_size() const {
     SASSERT(!is_marked());
     if (GET_TAG(m_data) == 0) {
-        return static_cast<unsigned>(strlen(reinterpret_cast<char const *>(m_data)));
+        return static_cast<unsigned>(strlen(m_data));
     }
     else {
         unsigned v = UNBOXINT(m_data);

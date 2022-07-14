@@ -253,7 +253,12 @@ inline unsigned mk_mix(unsigned a, unsigned b, unsigned c) {
 
 constexpr static unsigned read_unsigned(const char *s) {
   unsigned n = 0;
-  memcpy(&n, s, sizeof(unsigned));
+  unsigned s0 = s[0];
+  unsigned s1 = s[1];
+  unsigned s2 = s[2];
+  unsigned s3 = s[3];
+  n = s0 | (s1 << 8) | (s2 << 16) | (s3 << 24);
+  //memcpy(&n, s, sizeof(unsigned));
   return n;
 }
 
