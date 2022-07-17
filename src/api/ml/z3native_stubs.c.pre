@@ -110,6 +110,13 @@ int compare_pointers(void* pt1, void* pt2) {
 
 /* Context objects */
 
+struct Z3_deletion_queue_entry {
+  void * entry_value;
+  void (*delete_entry)(Z3_context, void*);
+  struct Z3_deletion_queue_entry * next;
+};
+
+
 /* The Z3context_plus_data exists exactly once for each context,
    no matter how many custom blocks for that context exist.
    Each custom block only stores a pointer to the corresponding
@@ -119,6 +126,8 @@ int compare_pointers(void* pt1, void* pt2) {
 typedef struct {
   Z3_context ctx;
   unsigned long obj_count;
+  bool in_blocking_section;
+  struct Z3_deletion_queue_entry * deletion_queue;
 } Z3_context_plus_data;
 
 /* A context is wrapped to an OCaml value by storing a pointer
@@ -135,6 +144,8 @@ Z3_context_plus Z3_context_plus_mk(Z3_context c) {
      We regard custom blocks that point to a Z3_context_plus structure
      as a usage of this structure. Hence, we assign it a counter of one. */
   r->obj_count = 1;
+  r->in_blocking_section = false;
+  r->deletion_queue = 0;
   return r;
 }
 
@@ -154,6 +165,50 @@ void try_to_delete_context(Z3_context_plus cp) {
   else if (cp->obj_count < 0)
     printf("try_to_delete_context: ERROR, found context %p(%p) with negative cnt=%lu.\n", cp, cp->ctx, cp->obj_count);
   */
+}
+
+/* We must ensure that objects belonging to this context do not get deleted while we
+   have released the runtime lock, so enqueue the deletion in this case, to avoid
+   races around the refcount. */
+void Z3_caml_release_runtime_system(Z3_context_plus cp){
+  assert(!cp->in_blocking_section);
+  assert(!cp->deletion_queue);
+  cp->in_blocking_section = true;
+  caml_release_runtime_system();
+}
+
+void Z3_caml_acquire_runtime_system(Z3_context_plus cp){
+  caml_acquire_runtime_system();
+  cp->in_blocking_section = false;
+  struct Z3_deletion_queue_entry * dqe = cp->deletion_queue;
+  while(dqe){
+    dqe->delete_entry(cp->ctx,dqe->entry_value);
+    struct Z3_deletion_queue_entry * old = dqe;
+    dqe = dqe->next;
+    free(old);
+    cp->obj_count--;
+    /* Don't try to delete context, since the function that acquired the runtime lock
+       should still keep it alive */
+  };
+  cp->deletion_queue = 0;
+}
+
+void Z3_wrapped_dec_ref(Z3_context_plus cp, void (*delete_entry)(Z3_context, void*), void *entry_value){
+  if(entry_value == NULL){
+    cp->obj_count--;
+  } else {
+    if(cp->in_blocking_section) {
+      struct Z3_deletion_queue_entry * dqe = malloc(sizeof(struct Z3_deletion_queue_entry));
+      dqe->entry_value = entry_value;
+      dqe->delete_entry = delete_entry;
+      dqe->next = cp->deletion_queue;
+      cp->deletion_queue = dqe;
+    } else {
+      delete_entry(cp->ctx,entry_value);
+      cp->obj_count--;
+      try_to_delete_context(cp);
+    }
+  }
 }
 
 void Z3_context_finalize(value v) {
@@ -219,13 +274,11 @@ Z3_ast Z3_ast_plus_raw(Z3_ast_plus * ap) {
   return ap->p;
 }
 
+
 void Z3_ast_finalize(value v) {
   /* printf("--\n"); */
   Z3_ast_plus * ap = (Z3_ast_plus*)(Data_custom_val(v));
-  if (ap->p != NULL)
-    Z3_dec_ref(ap->cp->ctx, ap->p);
-  ap->cp->obj_count--;
-  try_to_delete_context(ap->cp);
+  Z3_wrapped_dec_ref(ap->cp, &Z3_dec_ref, ap->p);
 }
 
 int Z3_ast_compare(value v1, value v2) {
@@ -374,10 +427,7 @@ MK_CTX_OF(ast, 8) // let's say 16 bytes per ast
                                                                         \
   void Z3_ ## X ## _finalize(value v) {                                 \
     Z3_ ## X ## _plus * pp = (Z3_ ## X ## _plus*)Data_custom_val(v);    \
-    if (pp->p != NULL)                                                  \
-      Z3_ ## X ## _dec_ref(pp->cp->ctx, pp->p);                         \
-    pp->cp->obj_count--;                                                \
-    try_to_delete_context(pp->cp);                                      \
+    Z3_wrapped_dec_ref(pp->cp, &Z3_ ## X ## _dec_ref, pp->p);           \
   }                                                                     \
                                                                         \
   int Z3_ ## X ## _compare(value v1, value v2) {                        \

@@ -1542,7 +1542,7 @@ def mk_z3native_stubs_c(ml_src_dir, ml_output_dir): # C interface
 
         release_caml_gc= name in z3_long_funs
         if release_caml_gc:
-            ml_wrapper.write('\n  caml_release_runtime_system();\n')
+            ml_wrapper.write('\n  Z3_caml_release_runtime_system(ctx_p);\n')
 
         ml_wrapper.write('\n  /* invoke Z3 function */\n  ')
         if result != VOID:
@@ -1576,7 +1576,7 @@ def mk_z3native_stubs_c(ml_src_dir, ml_output_dir): # C interface
             ml_wrapper.write('  }\n')
 
         if release_caml_gc:
-            ml_wrapper.write('\n  caml_acquire_runtime_system();\n')
+            ml_wrapper.write('\n  Z3_caml_acquire_runtime_system(ctx_p);\n')
 
         if have_context and name not in Unwrapped and name not in Unchecked:
             ml_wrapper.write('  ec = Z3_get_error_code(ctx_p->ctx);\n')
