@@ -196,6 +196,8 @@ void Z3_caml_acquire_runtime_system(Z3_context_plus cp){
 void Z3_wrapped_dec_ref(Z3_context_plus cp, void (*delete_entry)(Z3_context, void*), void *entry_value){
   if(entry_value == NULL){
     cp->obj_count--;
+    if(!cp->in_blocking_section)
+      try_to_delete_context(cp);
   } else {
     if(cp->in_blocking_section) {
       struct Z3_deletion_queue_entry * dqe = malloc(sizeof(struct Z3_deletion_queue_entry));
